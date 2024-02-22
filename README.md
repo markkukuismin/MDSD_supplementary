@@ -2,6 +2,8 @@
 
 Supplementary materials for the article 'Network hub detection using the entire solution path information'.
 
+See also [https://github.com/markkukuismin/MDSD](https://github.com/markkukuismin/MDSD).
+
 ## Dependencies
 
 ```r
