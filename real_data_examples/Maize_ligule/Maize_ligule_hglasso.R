@@ -11,6 +11,7 @@
 library(tidyverse)
 library(DESeq2)
 library(genefilter)
+
 library(hglasso)
 
 source("functions/hub_detection_hglasso.R")
@@ -21,11 +22,15 @@ dim(data)
 
 names(data)
 
+names(data)[1] = "GeneId"
+
+names(data)
+
 # Data modifications: normalize expressions,
 
 DE_input_data = as.matrix(data[, -1])
 
-row.names(DE_input_data) = data$Count
+row.names(DE_input_data) = data$GeneId
 
 meta_data = data.frame( Sample = names(data[-1])) %>%
   mutate(
@@ -43,18 +48,32 @@ dds = DESeq(dds)
 # Apply a variance stabilizing transformation (VST) 
 # to the count data
 
-expr_normalized = getVarianceStabilizedData(dds)
+vsd = varianceStabilizingTransformation(dds)
 
-dim(expr_normalized)
+wpn_vsd = getVarianceStabilizedData(dds)
+rv_wpn = rowVars(wpn_vsd)
+
+summary(rv_wpn)
+
+dim(wpn_vsd)
+
+# There is just a handful of treatments...
+
+# Select gene probes with a large variance to reduce the number
+# of genes. In particular, select those with a variance above 
+# the 99th quantile,
+
+#thr = quantile(rowVars(wpn_vsd), .99) # apply(wpn_vsd, 1, var)
+#expr_normalized = wpn_vsd[rv_wpn > thr, ]
 
 # Select gene probes with a large variance to reduce the number
 # of genes. In particular, select 1000 genes with the highest
 # variance,
 
-top_vars = apply(expr_normalized, 1, var)
+top_vars = apply(wpn_vsd, 1, var)
 top_vars = sort(top_vars, decreasing = TRUE)[1:1000]
 top_vars = names(top_vars)
-expr_normalized = expr_normalized[rownames(expr_normalized) %in% top_vars, ]
+expr_normalized = wpn_vsd[rownames(wpn_vsd) %in% top_vars, ]
 
 dim(expr_normalized)
 
@@ -298,3 +317,212 @@ cat(
       ), "},"
     )
 )
+
+###
+
+expr_normalized_hubs = expr_normalized[, hubs_hglasso]
+
+sample_names = rownames(expr_normalized_hubs)
+
+mutants = stringr::str_detect(sample_names, "lg")
+
+mutants = 1*mutants
+
+mutants_df = data.frame(mutant = mutants)
+
+dim(mutants_df)
+dim(expr_normalized_hubs)
+
+mutants_df = dplyr::bind_cols(mutants_df, expr_normalized_hubs)
+
+# ROC analysis,
+
+library(pROC)
+
+pROC::roc(mutants_df$mutant, 
+          mutants_df$GRMZM2G005818, ci = TRUE)
+
+# This is the same as,
+
+glm_test = glm(mutant ~ GRMZM2G005818, family = binomial(logit), 
+               data = mutants_df)
+
+pROC::roc(glm_test$y, glm_test$fitted.values, ci = TRUE)
+
+# Add interactions,
+
+glm_test = glm(mutant ~ GRMZM2G005818*GRMZM2G007953, family = binomial(logit), 
+              data = mutants_df)
+
+summary(glm_test)
+
+roc_test = pROC::roc(glm_test$y, glm_test$fitted.values, ci = TRUE)
+
+roc_test
+
+ggroc(roc_test) +
+  geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), linetype="dashed")
+
+
+## All variables in the same model (high-dimensional data),
+
+glm_all = glm(mutant ~ ., family = binomial(logit), 
+              data = mutants_df)
+
+summary(glm_all)
+
+pROC::roc(glm_all$y, glm_all$fitted.values, ci = TRUE)
+
+#
+
+df_temp = mutants_df[, c("mutant", hubs_MDSD)]
+
+glm_MDSD = glm(mutant ~ ., family = binomial(logit), 
+               data = df_temp)
+
+pROC::roc(glm_MDSD$y, glm_MDSD$fitted.values, ci = TRUE)
+
+#
+
+df_temp = mutants_df[, c("mutant", hglasso_only)]
+
+glm_hglasso = glm(mutant ~ ., family = binomial(logit), 
+                  data = df_temp)
+
+pROC::roc(glm_hglasso$y, glm_hglasso$fitted.values, ci = TRUE)
+
+# What about if we look each hub gene one by one?
+
+roc_test = pROC::roc(mutant ~ GRMZM2G005818, data = mutants_df)
+
+auc(roc_test)
+
+ggroc(roc_test, size = 1) +
+  xlab("Specificity") +
+  ylab("Sensitivity") +
+  geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), linetype="dashed")
+
+# or,
+
+roc_test = pROC::roc(mutants_df$mutant, 
+                     mutants_df$GRMZM2G005818)
+
+auc(roc_test)
+
+ggroc(roc_test, size = 1) +
+  xlab("Specificity") +
+  ylab("Sensitivity") +
+  geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), linetype="dashed")
+
+###
+
+# GRMZM2G030123 found only with hglasso,
+
+roc_test = pROC::roc(mutant ~ GRMZM2G005818 + GRMZM2G030123, 
+                     data = mutants_df)
+
+ggroc(roc_test)
+
+auc(roc_test$GRMZM2G005818)
+auc(roc_test$GRMZM2G030123)
+
+roc_test = pROC::roc(mutant ~ GRMZM2G005818, 
+                     data = mutants_df)
+
+auc(roc_test)
+
+roc_test = pROC::roc(mutant ~ GRMZM2G030123, 
+                     data = mutants_df)
+
+auc(roc_test)
+
+ggroc(roc_test, size = 1) +
+  xlab("Specificity") +
+  ylab("Sensitivity") +
+  geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), linetype="dashed")
+
+
+all_formulas = lapply(colnames(mutants_df[, -1]),
+                       function(gname){
+                         formula(paste0('mutant ~ ', gname) ,env = globalenv())
+                       } 
+)
+
+MDSD_formulas = lapply(colnames(mutants_df[, hubs_MDSD]),
+       function(gname){
+         formula(paste0('mutant ~ ', gname) ,env = globalenv())
+       } 
+)
+
+hglasso_only = lubridate::setdiff(hubs_hglasso, hubs_MDSD)
+
+hglasso_formulas = lapply(colnames(mutants_df[, hglasso_only]),
+       function(gname){
+         formula(paste0('mutant ~ ', gname), env = globalenv())
+       } 
+)
+
+AUC_all = rep(0, ncol(mutants_df[, -1]))
+
+for(i in 1:length(all_formulas)){
+  
+  roc_temp = suppressMessages(roc(all_formulas[[i]], data = mutants_df))
+  
+  AUC_all[i] = c(auc(roc_temp))
+  
+}
+
+AUC_MDSD = rep(0, length(MDSD_formulas))
+
+for(i in 1:length(MDSD_formulas)){
+  
+  roc_temp = suppressMessages(roc(MDSD_formulas[[i]], data = mutants_df))
+
+  AUC_MDSD[i] = c(auc(roc_temp))
+    
+}
+
+AUC_hglasso = rep(0, length(hglasso_formulas))
+
+for(i in 1:length(hglasso_formulas)){
+  
+  roc_temp = suppressMessages(roc(hglasso_formulas[[i]], data = mutants_df))
+  
+  AUC_hglasso[i] = c(auc(roc_temp))
+  
+}
+
+AUC_MDSD
+AUC_hglasso
+
+AUC_g = c(AUC_all, AUC_hglasso, AUC_MDSD)
+
+b = c(length(AUC_all), length(AUC_hglasso), length(AUC_MDSD))
+
+geneset = rep(c("All", "hglasso", "MDSD"), b)
+
+data_box = data.frame(geneset = geneset, AUC = AUC_g)
+
+# Blot violin plots (= the kernel probability density)
+# Median and quartiles are illustrated using box-plots,
+
+p_boxplot = ggplot(data = data_box,
+                   mapping = aes(x = reorder(geneset, AUC, FUN = median, decreasing = TRUE), 
+                                 y = AUC, group = geneset)) +
+  geom_violin() +
+  geom_boxplot(width = 0.2) +
+  #ggtitle("AUC of MDSD and hglasso genes") + 
+  ylab("AUC") + 
+  xlab("")
+
+p_boxplot
+
+png("manuscript_figures/Fig5.png",
+    units = "in",
+    res = 300,
+    width = 7,
+    height = 4)
+
+p_boxplot
+
+dev.off()

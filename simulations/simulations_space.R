@@ -4,7 +4,10 @@
 library(igraph)
 library(huge)
 library(tidyverse)
+library(pracma)
 library(hglasso)
+library(glmnet)
+library(doParallel)
 library(space)
 
 source("functions/inter_network.R")
@@ -24,7 +27,7 @@ set.seed(1)
 
 # Graphical model construction,
 
-G_type = "hglassotwo" # hglasso, hglassotwo, inter, scale-free, or star
+G_type = "hglasso" # hglasso, hglassotwo, inter, scale-free, or star
 
 if(G_type == "hglasso"){
   
@@ -213,7 +216,7 @@ for(i in 1:M){
   detection_res = hub_detection_hglasso(hglasso_path = space_path,
                                         node_names = node_names)
   
-  space_hubs_MDSD = evaluation_metrics(est_hubs = detection_res$hub_nodes_MDSD, 
+  space_hubs_MDSD = evaluation_metrics(est_hubs = detection_res$hub_nodes_MDSD_burn, 
                                          true_hubs = true_hubs,
                                          node_names = node_names)
   

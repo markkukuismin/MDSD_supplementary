@@ -4,7 +4,10 @@
 library(igraph)
 library(huge)
 library(tidyverse)
+library(pracma)
 library(hglasso)
+library(glmnet)
+library(doParallel)
 
 source("functions/inter_network.R")
 source("functions/BA_network.R")
@@ -115,7 +118,7 @@ A_true[A_true != 0] = 1
 
 diag(A_true) = 0
 
-G_true = igraph::graph_from_adjacency_matrix(A_true, mode = "undirected", diag = F)
+G_true = igraph::graph.adjacency(A_true, mode = "undirected", diag = F)
 
 node_names = as.character(1:p)
 

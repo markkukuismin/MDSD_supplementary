@@ -40,14 +40,32 @@ hub_detection_cor = function(cor_path = NULL, node_names = NULL){
     
   }
   
+  d_skewness = apply(Degree_lambda, 2, e1071::skewness)
+  
+  d_skewness[is.na(d_skewness)] = 0
+  
+  burn = which(d_skewness <= 1)
+  
+  MDSD_burn = rep(0, p)
+  
+  for(j in 1:p){
+    
+    MDSD_burn[j] = mean((Degree_lambda[rep(j, p - 1), -burn] - Degree_lambda[-j, -burn])^2)
+    
+  }
+  
   names(MDSD) = rownames(Degree_lambda)
+  names(MDSD_burn) = rownames(Degree_lambda)
   
   hub_nodes_MDSD = node_names[MDSD > 3*mean(MDSD)]
+  hub_nodes_MDSD_burn = node_names[MDSD_burn > 3*mean(MDSD_burn)]
   
   degrees = c(t(Degree_lambda))
   
-  return(list(hub_nodes_MDSD = hub_nodes_MDSD, 
+  return(list(hub_nodes_MDSD = hub_nodes_MDSD,
+              hub_nodes_MDSD_burn = hub_nodes_MDSD_burn,
               MDSD = MDSD,
+              MDSD_burn = MDSD_burn,
               Degree = degrees))
   
 }

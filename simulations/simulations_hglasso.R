@@ -4,7 +4,10 @@
 library(igraph)
 library(huge)
 library(tidyverse)
+library(pracma)
 library(hglasso)
+library(glmnet)
+library(doParallel)
 
 source("functions/inter_network.R")
 source("functions/BA_network.R")
@@ -14,12 +17,12 @@ source("functions/evaluation_metrics.R") # For hubs
 
 # (n, p) %in% (100, 500) and (500, 1500)
 
-p = 500 # The number of nodes
-n = 100 # The number of samples
+p = 1500 # The number of nodes
+n = 500 # The number of samples
 
 set.seed(1)
 
-G_type = "hglassotwo" # hglasso, hglassotwo, inter, scale-free, or star
+G_type = "star" # hglasso, hglassotwo, inter, scale-free, or star
 
 if(G_type == "hglasso"){
   
@@ -204,7 +207,7 @@ for(i in 1:M){
                                         node_names = node_names
                                         )
   
-  hglasso_hubs_MDSD = evaluation_metrics(est_hubs = detection_res$hub_nodes_MDSD, 
+  hglasso_hubs_MDSD = evaluation_metrics(est_hubs = detection_res$hub_nodes_MDSD_burn, 
                                         true_hubs = true_hubs,
                                         node_names = node_names
                                         )

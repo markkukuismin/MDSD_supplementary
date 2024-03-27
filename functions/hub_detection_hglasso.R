@@ -42,12 +42,40 @@ hub_detection_hglasso = function(hglasso_path = NULL, node_names = NULL, gamma =
     
   }
   
+  d_skewness = apply(Degree_lambda, 2, e1071::skewness)
+  
+  d_skewness[is.na(d_skewness)] = 0
+  
+  burn = which(d_skewness <= 1)
+  
+  if(!rlang::is_empty(burn)){
+    
+    MDSD_burn = rep(0, p)
+    
+    for(j in 1:p){
+      
+      MDSD_burn[j] = mean((Degree_lambda[rep(j, p - 1), -burn] - Degree_lambda[-j, -burn])^2)
+      
+    }
+    
+  }else{
+    
+    MDSD_burn = MDSD
+    
+  }
+  
   names(MDSD) = rownames(Degree_lambda)
+  names(MDSD_burn) = rownames(Degree_lambda)
   
   hub_nodes_MDSD = node_names[MDSD > gamma*mean(MDSD)]
+  hub_nodes_MDSD_burn = node_names[MDSD_burn > gamma*mean(MDSD_burn)]
+  
+  degrees = c(t(Degree_lambda))
   
   return(list(hub_nodes_MDSD = hub_nodes_MDSD,
+              hub_nodes_MDSD_burn = hub_nodes_MDSD_burn,
               MDSD = MDSD,
-              Degree = Degree_lambda))
+              MDSD_burn = MDSD_burn,
+              Degree = degrees))
   
 }

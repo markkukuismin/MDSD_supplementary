@@ -1,5 +1,9 @@
 
-hub_detection_huge = function(huge_est = NULL, plot = TRUE){
+hub_detection_huge = function(huge_est = NULL, gamma = NULL, burn_thr = NULL, plot = TRUE){
+  
+  if(is.null(gamma)) gamma = 3
+  
+  if(is.null(burn_thr)) burn_thr = 1
   
   if(is.null(huge_est)) stop("Error: huge_est is missing")
   
@@ -36,6 +40,12 @@ hub_detection_huge = function(huge_est = NULL, plot = TRUE){
     
     G = as.matrix(G)
     
+    # huge (version 1.3.5) does not always return symmetric adjacency matrix...
+    
+    G = G + t(G)
+    
+    G[G != 0] = 1
+    
     G = igraph::graph_from_adjacency_matrix(G, mode = "undirected", diag = FALSE)
     
     BC[ , j] = igraph::betweenness(G, directed = FALSE)
@@ -66,13 +76,37 @@ hub_detection_huge = function(huge_est = NULL, plot = TRUE){
     
   }
   
+  d_skewness = apply(Degree_lambda, 2, e1071::skewness)
+  
+  d_skewness[is.na(d_skewness)] = 0
+  
+  burn = which(d_skewness <= burn_thr)
+  
+  if(!rlang::is_empty(burn)){
+    
+    MDSD_burn = rep(0, p)
+    
+    for(j in 1:p){
+      
+      MDSD_burn[j] = mean((Degree_lambda[rep(j, p - 1), -burn] - Degree_lambda[-j, -burn])^2)
+      
+    }
+    
+  }else{
+    
+    MDSD_burn = MDSD
+    
+  }
+  
   names(MDSD) = rownames(Degree_lambda)
+  names(MDSD_burn) = rownames(Degree_lambda)
   
   names(bcss) = rownames(Degree_lambda)
   
-  hub_nodes_MDSD = node_names[MDSD > 3*mean(MDSD)]
+  hub_nodes_MDSD = node_names[MDSD > gamma*mean(MDSD)]
+  hub_nodes_MDSD_burn = node_names[MDSD_burn > gamma*mean(MDSD_burn)]
   
-  hub_nodes_BC = node_names[bcss > 3*mean(bcss)]
+  hub_nodes_BC = node_names[bcss > gamma*mean(bcss)]
   
   raw_data = data.frame(node = all_nodes,
                         Degree = degrees,
@@ -82,6 +116,7 @@ hub_detection_huge = function(huge_est = NULL, plot = TRUE){
   
   sol_path_data = data.frame(node = node_names,
                              MDSD = MDSD,
+                             MDSD_burn = MDSD_burn,
                              bcss = bcss
                              )
   
@@ -123,6 +158,7 @@ hub_detection_huge = function(huge_est = NULL, plot = TRUE){
   results = list(bcss= bcss,
                  lambda = lambda,
                  hub_nodes_MDSD = hub_nodes_MDSD,
+                 hub_nodes_MDSD_burn = hub_nodes_MDSD_burn,
                  hub_nodes_BC = hub_nodes_BC,
                  raw_data = raw_data,
                  sol_path_data = sol_path_data,
