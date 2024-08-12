@@ -60,13 +60,6 @@ dim(wpn_vsd)
 # There is just a handful of treatments...
 
 # Select gene probes with a large variance to reduce the number
-# of genes. In particular, select those with a variance above 
-# the 99th quantile,
-
-#thr = quantile(rowVars(wpn_vsd), .99) # apply(wpn_vsd, 1, var)
-#expr_normalized = wpn_vsd[rv_wpn > thr, ]
-
-# Select gene probes with a large variance to reduce the number
 # of genes. In particular, select 1000 genes with the highest
 # variance,
 
