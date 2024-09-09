@@ -3,6 +3,7 @@
 
 library(tidyverse)
 library(gridExtra)
+library(ggpubr)
 
 files_space = dir("simulations/space_results/")
 
@@ -89,6 +90,15 @@ for(g in gtype){
   if(g == "star") p_box[[i]] = p_box[[i]] + labs(title = "Star network")
   if(g == "scale-free") p_box[[i]] = p_box[[i]] + labs(title = "Scale-free")
   if(g == "inter") p_box[[i]] = p_box[[i]] + labs(title = "Inter-hub network")
+  
+  p_box[[i]] = p_box[[i]] + 
+    stat_compare_means(aes(group = Method, 
+                           label = ifelse(
+                             p < 0.01,
+                             "p < 0.01",
+                             sprintf("p = %5.2f", as.numeric(..p.format..)))), 
+                       label.y = 1.2,
+                       method = "wilcox.test")
   
   print(p_box[[i]])
   

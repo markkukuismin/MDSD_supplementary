@@ -3,6 +3,7 @@
 
 library(tidyverse)
 library(gridExtra)
+library(ggpubr)
 
 files_hglasso = dir("simulations/hglasso_results/")
 files_cor = dir("simulations/cor_screening_results/")
@@ -87,7 +88,7 @@ Results_temp_f2 = Results_temp %>%
 
 i = 1
 
-p_box = list()
+p_box = p_box2 = list()
 
 gtype = unique(gtype)
 
@@ -110,6 +111,17 @@ for(g in gtype){
   if(g == "scale-free") p_box[[i]] = p_box[[i]] + labs(title = "Scale-free")
   if(g == "inter") p_box[[i]] = p_box[[i]] + labs(title = "Inter-hub network")
   
+  p_box2[[i]] = p_box[[i]]
+  
+  p_box[[i]] = p_box[[i]] + 
+    stat_compare_means(aes(group = Method, 
+                           label = ifelse(
+                             p < 0.01,
+                             "p < 0.01",
+                             sprintf("p = %5.2f", as.numeric(..p.format..)))), 
+                       label.y = 1.2,
+                       method = "wilcox.test")
+  
   print(p_box[[i]])
   
   i = i + 1
@@ -119,8 +131,6 @@ for(g in gtype){
 dev.off()
 
 ##
-
-p_box2 = p_box
 
 dummy = temp_res
 
@@ -201,7 +211,7 @@ Results_temp_f3 = Results_temp %>%
 
 i = 1
 
-p_box = list()
+p_box = p_box2 = list()
 
 gtype = unique(gtype)
 
@@ -224,6 +234,17 @@ for(g in gtype){
   if(g == "scale-free") p_box[[i]] = p_box[[i]] + labs(title = "Scale-free")
   if(g == "inter") p_box[[i]] = p_box[[i]] + labs(title = "Inter-hub network")
   
+  p_box2[[i]] = p_box[[i]]
+  
+  p_box[[i]] = p_box[[i]] +
+    stat_compare_means(aes(group = Method, 
+                           label = ifelse(
+                             p < 0.01,
+                             "p < 0.01",
+                             sprintf("p = %5.2f", as.numeric(..p.format..)))), 
+                       label.y = 1.2,
+                       method = "wilcox.test")
+  
   print(p_box[[i]])
   
   i = i + 1
@@ -233,8 +254,6 @@ for(g in gtype){
 dev.off()
 
 ##
-
-p_box2 = p_box
 
 dummy = temp_res
 
