@@ -114,9 +114,9 @@ p3
 
 grid.arrange(p1, p2, p3, ncol = 3)
 
-tiff("manuscript_figures/Fig1.tif",
+tiff("manuscript_figures/Fig1a.tif",
      units = "in",
-     res = 300,
+     res = 400,
      width = 9,
      height = 4)
 
@@ -124,7 +124,7 @@ grid.arrange(p1, p2, p3, ncol = 3)
 
 dev.off()
 
-pdf("manuscript_figures/Fig1.pdf",
+pdf("manuscript_figures/Fig1a.pdf",
     width = 9,
     height = 4)
 
@@ -132,9 +132,9 @@ grid.arrange(p1, p2, p3, ncol = 3)
 
 dev.off()
 
-png("manuscript_figures/Fig1.png",
+png("manuscript_figures/Fig1a.png",
     units = "in",
-    res = 300,
+    res = 400,
     width = 9,
     height = 4)
 
